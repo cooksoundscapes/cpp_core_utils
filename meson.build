@@ -23,18 +23,20 @@ core_lib = static_library('audio-core',
 )
 
 # Test setup
-catch2_dep = dependency('catch2')
+if not meson.is_subproject()
+  catch2_dep = dependency('catch2')
 
-test_logger = executable(
-  'test_logger',
-  'tests/test_logger.cpp',
-  include_directories: core_inc,
-  dependencies: catch2_dep,   
-  link_with: core_lib,
-  cpp_args: ['-pthread']
-)
+  test_logger = executable(
+    'test_logger',
+    'tests/test_logger.cpp',
+    include_directories: core_inc,
+    dependencies: catch2_dep,   
+    link_with: core_lib,
+    cpp_args: ['-pthread']
+  )
 
-test('logger', test_logger)
+  test('logger', test_logger)
+endif
 
 # A parte mágica: O "declare_dependency" permite que o projeto principal
 # receba os fontes, os headers e o link para o JACK de uma vez só.
