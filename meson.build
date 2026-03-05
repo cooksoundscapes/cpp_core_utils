@@ -22,6 +22,20 @@ core_lib = static_library('audio-core',
   install : true
 )
 
+# Test setup
+catch2_dep = dependency('catch2')
+
+test_logger = executable(
+  'test_logger',
+  'tests/test_logger.cpp',
+  include_directories: core_inc,
+  dependencies: catch2_dep,   
+  link_with: core_lib,
+  cpp_args: ['-pthread']
+)
+
+test('logger', test_logger)
+
 # A parte mágica: O "declare_dependency" permite que o projeto principal
 # receba os fontes, os headers e o link para o JACK de uma vez só.
 core_dep = declare_dependency(
