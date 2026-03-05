@@ -8,7 +8,7 @@
 
 class Logger {
 public:
-    explicit Logger(size_t max_lines = 25);
+    explicit Logger(size_t max_lines = 10, size_t stride = 60);
     ~Logger();
 
     void start();

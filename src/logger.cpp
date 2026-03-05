@@ -4,9 +4,10 @@
 #include <cstdio>
 #include <cstring>
 
-Logger::Logger(size_t max_lines)
+Logger::Logger(size_t max_lines, size_t stride)
     : max_lines_(max_lines)
 {
+    buffer_.reserve((max_lines * stride));
 }
 
 Logger::~Logger() {
