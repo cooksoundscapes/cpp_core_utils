@@ -1,26 +1,38 @@
 #pragma once
 
+#include <deque>
 #include <string>
-#include <string_view>
 #include <mutex>
 #include <thread>
+#include <atomic>
 
 class Logger {
 public:
-    Logger(size_t rows = 25, size_t stride = 128);
+    explicit Logger(size_t max_lines = 25);
     ~Logger();
 
     void start();
     void stop();
-    void addLog(const char* msg);
-    std::string_view getBufferView() const;
+
+    std::deque<std::string> getLines();
+
+    std::string_view getBufferView() const {
+    return buffer_;
+}
 
 private:
-    std::string buffer_;
-    size_t rows_, stride_;
+    void pipeLoop();
+
+    size_t max_lines_;
+    std::deque<std::string> lines_;
+
     std::mutex mutex_;
     std::thread pipe_thread_;
-    int pipefds[2];
-    int original_stderr_fd = -1;
-    bool running_ = false;
+    std::atomic<bool> running_{false};
+
+    int pipefds_[2];
+    int original_stderr_fd_ = -1;
+
+    std::string buffer_;
+    void rebuildBuffer();
 };
