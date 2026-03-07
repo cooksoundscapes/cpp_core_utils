@@ -96,7 +96,7 @@ int JackClient::process(jack_nframes_t nframes) {
         if (rawEvent.size == 0) continue;
 
         uint8_t status = rawEvent.buffer[0];
-        uint8_t channel = status & 0x0F;
+        uint8_t channel = (status & 0x0F) + 1;
         auto command = static_cast<MidiInputType>(status & 0xF0);
         MidiEvent ev;
         ev.type = command;
