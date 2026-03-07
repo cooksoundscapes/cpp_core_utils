@@ -27,12 +27,12 @@ public:
     uint32_t sampleRate() const;
     uint32_t bufferSize() const;
 
-    std::function<void(RawMidiEvent)> processMidiCallback;
+    std::function<void(MidiEvent)> midiExternalCallback;
 
 protected:
     // ===== hooks que você implementa =====
     virtual void processAudio(float** outputs, uint32_t nframes) = 0;
-    virtual void processMidi([[maybe_unused]] const jack_midi_event_t& ev) {}
+    virtual void processMidi(MidiEvent ev) {}
 
     // ===== helpers =====
     float* outBuffer(size_t channel, uint32_t nframes);

@@ -10,10 +10,11 @@ enum class MidiInputType : uint8_t {
     NONE           = 0x00
 };
 
-struct RawMidiEvent {
+struct MidiEvent {
     MidiInputType type;
     uint8_t channel;
-    uint8_t data1; // Nota ou Número do CC
-    uint8_t data2; // Velocity ou Valor do CC
+    uint8_t data1; // Note or CC
+    uint8_t data2; // Velocity or CC value
+    int delay;
 };
 

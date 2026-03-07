@@ -1,4 +1,5 @@
 #include "core/jack.hpp"
+#include "core/midi_types.hpp"
 #include <cstring>
 #include <iostream>
 
@@ -89,8 +90,18 @@ int JackClient::process(jack_nframes_t nframes) {
     const uint32_t evCount = jack_midi_get_event_count(midiBuf);
 
     for (uint32_t i = 0; i < evCount; ++i) {
-        jack_midi_event_t ev;
-        jack_midi_event_get(&ev, midiBuf, i);
+        jack_midi_event_t rawEvent;
+        jack_midi_event_get(&rawEvent, midiBuf, i);
+
+        uint8_t status = rawEvent.buffer[0];
+        uint8_t channel = status & 0x0F;
+        auto command = static_cast<MidiInputType>(status & 0xF0);
+        MidiEvent ev;
+        ev.type = command;
+        ev.channel = channel;
+        ev.delay = rawEvent.time;
+        ev.data1 = (rawEvent.size >= 2) ? rawEvent.buffer[1] : 0;
+        ev.data2 = (rawEvent.size >= 3) ? rawEvent.buffer[2] : 0;
         processMidi(ev);
     }
 
