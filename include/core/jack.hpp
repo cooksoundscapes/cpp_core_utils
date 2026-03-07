@@ -6,6 +6,9 @@
 #include <string>
 #include <vector>
 #include <atomic>
+#include <functional>
+
+#include "midi_types.hpp"
 
 class JackClient {
 public:
@@ -23,6 +26,8 @@ public:
 
     uint32_t sampleRate() const;
     uint32_t bufferSize() const;
+
+    std::function<void(RawMidiEvent)> processMidiCallback;
 
 protected:
     // ===== hooks que você implementa =====
