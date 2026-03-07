@@ -105,6 +105,8 @@ int JackClient::process(jack_nframes_t nframes) {
         ev.data1 = (rawEvent.size >= 2) ? rawEvent.buffer[1] : 0;
         ev.data2 = (rawEvent.size >= 3) ? rawEvent.buffer[2] : 0;
         processMidi(ev);
+        if (midiExternalCallback)
+            midiExternalCallback(ev);
     }
 
     // 2. Audio (com proteção de limite)
