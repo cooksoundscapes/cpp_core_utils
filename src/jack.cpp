@@ -93,6 +93,8 @@ int JackClient::process(jack_nframes_t nframes) {
         jack_midi_event_t rawEvent;
         jack_midi_event_get(&rawEvent, midiBuf, i);
 
+        if (rawEvent.size == 0) continue;
+
         uint8_t status = rawEvent.buffer[0];
         uint8_t channel = status & 0x0F;
         auto command = static_cast<MidiInputType>(status & 0xF0);
