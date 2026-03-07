@@ -32,7 +32,7 @@ public:
 protected:
     // ===== hooks que você implementa =====
     virtual void processAudio(float** outputs, uint32_t nframes) = 0;
-    virtual void processMidi(MidiEvent ev) {}
+    virtual void processMidi(MidiEvent) {}
 
     // ===== helpers =====
     float* outBuffer(size_t channel, uint32_t nframes);
