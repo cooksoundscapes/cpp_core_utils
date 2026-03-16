@@ -2,6 +2,7 @@
 #include "core/midi_types.hpp"
 #include <cstring>
 #include <iostream>
+#include <jack/types.h>
 
 JackClient::JackClient(const std::string& name)
     : name_(name) {}
@@ -22,6 +23,8 @@ bool JackClient::open() {
 
     // estéreo por padrão
     audioOut_.resize(2);
+    audioIn_.resize(1);
+
     audioOut_[0] = jack_port_register(
         client_, "out_L",
         JACK_DEFAULT_AUDIO_TYPE,
@@ -31,6 +34,11 @@ bool JackClient::open() {
         client_, "out_R",
         JACK_DEFAULT_AUDIO_TYPE,
         JackPortIsOutput, 0);
+
+    audioIn_[0] = jack_port_register(
+        client_, "in_MONO",
+        JACK_DEFAULT_AUDIO_TYPE,
+        JackPortIsInput, 0);
 
     midiIn_ = jack_port_register(
         client_, "midi_in",
@@ -109,19 +117,20 @@ int JackClient::process(jack_nframes_t nframes) {
             midiExternalCallback(ev);
     }
 
-    // 2. Audio (com proteção de limite)
-    float* outputs[2]; 
-    // Garante que não vamos além do que o array 'outputs' suporta
-    size_t numChannels = std::min<size_t>(audioOut_.size(), 2);
+    float* outputs[N_OUT]; 
+    float* inputs[N_IN];
 
-    for (size_t i = 0; i < numChannels; ++i) {
+    for (size_t i = 0; i < N_IN; ++i) {
+        inputs[i] = static_cast<float*>(jack_port_get_buffer(audioIn_[i], nframes));
+    }
+
+    for (size_t i = 0; i < N_OUT; ++i) {
         outputs[i] = static_cast<float*>(jack_port_get_buffer(audioOut_[i], nframes));
-        // Limpa aqui e remova o memset de dentro do SfizzEngine::render
         std::memset(outputs[i], 0, sizeof(float) * nframes);
     }
 
     // 3. Render
-    processAudio(outputs, nframes);
+    processAudio(inputs, outputs, nframes);
 
     return 0;
 }

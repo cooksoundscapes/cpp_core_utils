@@ -9,6 +9,8 @@
 #include <functional>
 
 #include "midi_types.hpp"
+#define N_IN 1
+#define N_OUT 2
 
 class JackClient {
 public:
@@ -31,7 +33,10 @@ public:
 
 protected:
     // ===== hooks que você implementa =====
-    virtual void processAudio(float** outputs, uint32_t nframes) = 0;
+    virtual void processAudio(float** outputs, uint32_t nframes) {}
+    virtual void processAudio(float** inputs, float** outputs, uint32_t nframes) {
+        processAudio(outputs, nframes);
+    }
     virtual void processMidi(MidiEvent) {}
 
     // ===== helpers =====
@@ -51,5 +56,6 @@ private:
     jack_client_t* client_ = nullptr;
 
     std::vector<jack_port_t*> audioOut_;
+    std::vector<jack_port_t*> audioIn_;
     jack_port_t* midiIn_ = nullptr;
 };
