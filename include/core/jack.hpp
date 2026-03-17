@@ -31,6 +31,8 @@ public:
 
     std::function<void(MidiEvent)> midiExternalCallback;
 
+    size_t blockSize() { return static_cast<size_t>(jack_get_buffer_size(client_)); }
+
 protected:
     // ===== hooks que você implementa =====
     virtual void processAudio(float** outputs, uint32_t nframes) {}
