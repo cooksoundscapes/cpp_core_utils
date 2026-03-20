@@ -61,9 +61,9 @@ bool JackClient::activate() {
     char *uuid_str = jack_get_uuid_for_client_name(client_, jack_get_client_name(client_));
     jack_uuid_parse(uuid_str, &uuid);
     jack_free(uuid_str);
-    jack_set_property(client_, uuid, "http://jackaudio.org/metadata/type", "instrument", "text/plain");
+    jack_set_property(client_, uuid, "https://kx.studio/ns/carla/main-client-name", "Carla", "text/plain");
 
-    
+
     if (jack_activate(client_) != 0) return false;
 
     
