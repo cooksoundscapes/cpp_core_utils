@@ -35,7 +35,7 @@ public:
 
 protected:
     // ===== hooks que você implementa =====
-    virtual void processAudio(float** outputs, uint32_t nframes) {}
+    virtual void processAudio([[maybe_unused]]float** outputs, [[maybe_unused]]uint32_t nframes) {}
     virtual void processAudio([[maybe_unused]]float** inputs, float** outputs, uint32_t nframes) {
         processAudio(outputs, nframes);
     }
