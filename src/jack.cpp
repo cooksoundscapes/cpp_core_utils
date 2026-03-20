@@ -28,6 +28,8 @@ bool JackClient::open() {
 
     audioOut_.resize(nOutputs_);
     audioIn_.resize(nInputs_);
+    inputBuffers_.resize(nInputs_);
+    outputBuffers_.resize(nOutputs_);
 
     for (size_t i{0}; i < nOutputs_; i++) {
         std::string portName = resolvePortName("out_", i, nOutputs_);
@@ -141,20 +143,17 @@ int JackClient::process(jack_nframes_t nframes) {
             midiExternalCallback(ev);
     }
 
-    float* outputs[N_OUT]; 
-    float* inputs[N_IN];
-
-    for (size_t i = 0; i < N_IN; ++i) {
-        inputs[i] = static_cast<float*>(jack_port_get_buffer(audioIn_[i], nframes));
+    for (size_t i = 0; i < nInputs_; ++i) {
+        inputBuffers_[i] = static_cast<float*>(jack_port_get_buffer(audioIn_[i], nframes));
     }
 
-    for (size_t i = 0; i < N_OUT; ++i) {
-        outputs[i] = static_cast<float*>(jack_port_get_buffer(audioOut_[i], nframes));
-        std::memset(outputs[i], 0, sizeof(float) * nframes);
+    for (size_t i = 0; i < nOutputs_; ++i) {
+        outputBuffers_[i] = static_cast<float*>(jack_port_get_buffer(audioOut_[i], nframes));
+        std::memset(outputBuffers_[i], 0, sizeof(float) * nframes);
     }
 
     // 3. Render
-    processAudio(inputs, outputs, nframes);
+    processAudio(inputBuffers_.data(), outputBuffers_.data(), nframes);
 
     return 0;
 }

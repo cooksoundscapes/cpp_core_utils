@@ -63,6 +63,9 @@ private:
     std::vector<jack_port_t*> audioOut_;
     std::vector<jack_port_t*> audioIn_;
     jack_port_t* midiIn_ = nullptr;
+
+    std::vector<float*> inputBuffers_;
+    std::vector<float*> outputBuffers_;
 };
 
 inline std::string resolvePortName(std::string prefix, size_t i, int nPorts) {
