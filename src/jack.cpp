@@ -195,3 +195,26 @@ void JackClient::setLastConnectedDevice(std::string newPortName) {
         }
     }
 }
+
+std::vector<std::string> JackClient::getMidiOutPorts() {
+    std::vector<std::string> portList;
+
+    const char **ports = jack_get_ports(
+        client_,
+        NULL,
+        JACK_DEFAULT_MIDI_TYPE,
+        JackPortIsOutput
+    );
+    
+    if (ports) {
+        for (int i = 0; ports[i]; i++) {
+            portList.push_back(ports[i]);
+        }
+        jack_free(ports);
+    }
+    return portList;
+}
+
+int JackClient::connectMidiPorts(std::string& src, std::string& dest) {
+    return jack_connect(client_, src.c_str(), dest.c_str()) == 0;
+}
