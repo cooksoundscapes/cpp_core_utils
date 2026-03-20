@@ -9,7 +9,7 @@
 JackClient::JackClient(const std::string& name)
     : nInputs_(0), nOutputs_(2), name_(name) {}
 
-JackClient::JackClient(const std::string& name, unsigned int inputs, unsigned int outputs)
+JackClient::JackClient(const std::string& name, size_t inputs, size_t outputs)
     : nInputs_(inputs), nOutputs_(outputs), name_(name) {}
 
 JackClient::~JackClient() {
@@ -29,7 +29,7 @@ bool JackClient::open() {
     audioOut_.resize(nOutputs_);
     audioIn_.resize(nInputs_);
 
-    for (int i{0}; i < nOutputs_; i++) {
+    for (size_t i{0}; i < nOutputs_; i++) {
         std::string portName = resolvePortName("out_", i, nOutputs_);
         audioOut_[i] = jack_port_register(
         client_, portName.c_str(),
@@ -37,7 +37,7 @@ bool JackClient::open() {
         JackPortIsOutput, 0);
     }
 
-    for (int i{0}; i < nInputs_; i++) {
+    for (size_t i{0}; i < nInputs_; i++) {
         std::string portName = resolvePortName("in_", i, nInputs_);
         audioIn_[0] = jack_port_register(
         client_, portName.c_str(),
@@ -71,7 +71,7 @@ bool JackClient::activate() {
         
         if (physical_ports != nullptr) {
             // Conectamos o que for possível, respeitando o limite do hardware e do nosso app
-            for (int i = 0; i < nOutputs_; ++i) {
+            for (size_t i = 0; i < nOutputs_; ++i) {
                 // Se a porta física 'i' não existir (ex: hardware mono), paramos
                 if (!physical_ports[i]) break; 
 

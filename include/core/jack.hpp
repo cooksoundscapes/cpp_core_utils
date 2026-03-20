@@ -15,7 +15,7 @@
 class JackClient {
 public:
     explicit JackClient(const std::string& name);
-    JackClient(const std::string& name, unsigned int inputs, unsigned int outputs);
+    JackClient(const std::string& name, size_t inputs, size_t outputs);
     virtual ~JackClient();
 
     bool open();
@@ -52,7 +52,7 @@ private:
 
     int process(jack_nframes_t nframes);
 
-    unsigned int nInputs_, nOutputs_;
+    size_t nInputs_, nOutputs_;
 
     std::atomic<bool> isConnected;
     std::string lastConnectedDevice_;
@@ -65,7 +65,7 @@ private:
     jack_port_t* midiIn_ = nullptr;
 };
 
-inline std::string resolvePortName(std::string prefix, int i, int nPorts) {
+inline std::string resolvePortName(std::string prefix, size_t i, int nPorts) {
     std::string portName;
     if (nPorts == 1) {
         portName = prefix + "Mono";
