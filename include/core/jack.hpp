@@ -15,6 +15,7 @@
 class JackClient {
 public:
     explicit JackClient(const std::string& name);
+    JackClient(const std::string& name, unsigned int inputs, unsigned int outputs);
     virtual ~JackClient();
 
     bool open();
@@ -35,7 +36,7 @@ public:
 
 protected:
     // ===== hooks que você implementa =====
-    virtual void processAudio([[maybe_unused]]float** outputs, [[maybe_unused]]uint32_t nframes) {}
+    virtual void processAudio(float**, uint32_t) {}
     virtual void processAudio([[maybe_unused]]float** inputs, float** outputs, uint32_t nframes) {
         processAudio(outputs, nframes);
     }
@@ -51,6 +52,8 @@ private:
 
     int process(jack_nframes_t nframes);
 
+    unsigned int nInputs_, nOutputs_;
+
     std::atomic<bool> isConnected;
     std::string lastConnectedDevice_;
 
@@ -61,3 +64,17 @@ private:
     std::vector<jack_port_t*> audioIn_;
     jack_port_t* midiIn_ = nullptr;
 };
+
+inline std::string resolvePortName(std::string prefix, int i, int nPorts) {
+    std::string portName;
+    if (nPorts == 1) {
+        portName = prefix + "Mono";
+    } else if (i == 0) {
+        portName = prefix + "L";
+    } else if (i == 1) {
+        portName = prefix + "R";
+    } else {
+        portName = prefix + std::to_string(i+1);
+    }
+    return portName;
+}

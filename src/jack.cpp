@@ -3,12 +3,14 @@
 #include <cstring>
 #include <iostream>
 #include <jack/types.h>
-// #include <jack/uuid.h>
 #include <jack/metadata.h>
 #include <jack/uuid.h>
 
 JackClient::JackClient(const std::string& name)
-    : name_(name) {}
+    : nInputs_(0), nOutputs_(2), name_(name) {}
+
+JackClient::JackClient(const std::string& name, unsigned int inputs, unsigned int outputs)
+    : nInputs_(inputs), nOutputs_(outputs), name_(name) {}
 
 JackClient::~JackClient() {
     close();
@@ -24,25 +26,26 @@ bool JackClient::open() {
     jack_set_process_callback(client_, &_process, this);
     jack_on_shutdown(client_, &_shutdown, this);
 
-    // estéreo por padrão
-    audioOut_.resize(2);
-    audioIn_.resize(1);
+    audioOut_.resize(nOutputs_);
+    audioIn_.resize(nInputs_);
 
-    audioOut_[0] = jack_port_register(
-        client_, "out_L",
+    for (int i{0}; i < nOutputs_; i++) {
+        std::string portName = resolvePortName("out_", i, nOutputs_);
+        audioOut_[i] = jack_port_register(
+        client_, portName.c_str(),
         JACK_DEFAULT_AUDIO_TYPE,
         JackPortIsOutput, 0);
+    }
 
-    audioOut_[1] = jack_port_register(
-        client_, "out_R",
-        JACK_DEFAULT_AUDIO_TYPE,
-        JackPortIsOutput, 0);
-
-    audioIn_[0] = jack_port_register(
-        client_, "in_MONO",
+    for (int i{0}; i < nInputs_; i++) {
+        std::string portName = resolvePortName("in_", i, nInputs_);
+        audioIn_[0] = jack_port_register(
+        client_, portName.c_str(),
         JACK_DEFAULT_AUDIO_TYPE,
         JackPortIsInput, 0);
+    }
 
+    // deixa sempre uma porta MIDI por enquanto
     midiIn_ = jack_port_register(
         client_, "midi_in",
         JACK_DEFAULT_MIDI_TYPE,
@@ -63,12 +66,22 @@ bool JackClient::activate() {
     jack_set_property(client_, uuid, "http://jackaudio.org/metadata/type", "instrument", "text/plain");
 
     // Tenta conectar automaticamente nas saídas do sistema
-    const char** ports = jack_get_ports(client_, NULL, NULL, JackPortIsPhysical | JackPortIsInput);
-    if (ports != nullptr) {
-        // Conecta L e R (se existirem)
-        if (ports[0]) jack_connect(client_, jack_port_name(audioOut_[0]), ports[0]);
-        if (ports[1]) jack_connect(client_, jack_port_name(audioOut_[1]), ports[1]);
-        jack_free(ports);
+    if (nOutputs_ > 0) {
+        const char** physical_ports = jack_get_ports(client_, NULL, NULL, JackPortIsPhysical | JackPortIsInput);
+        
+        if (physical_ports != nullptr) {
+            // Conectamos o que for possível, respeitando o limite do hardware e do nosso app
+            for (int i = 0; i < nOutputs_; ++i) {
+                // Se a porta física 'i' não existir (ex: hardware mono), paramos
+                if (!physical_ports[i]) break; 
+
+                // Segurança extra: verifica se a nossa porta audioOut_[i] é válida
+                if (audioOut_[i]) {
+                    jack_connect(client_, jack_port_name(audioOut_[i]), physical_ports[i]);
+                }
+            }
+            jack_free(physical_ports);
+        }
     }
     return true;
 }
