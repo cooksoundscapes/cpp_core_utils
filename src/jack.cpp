@@ -3,8 +3,6 @@
 #include <cstring>
 #include <iostream>
 #include <jack/types.h>
-#include <jack/metadata.h>
-#include <jack/uuid.h>
 
 JackClient::JackClient(const std::string& name)
     : nInputs_(0), nOutputs_(2), name_(name) {}
@@ -57,16 +55,8 @@ bool JackClient::open() {
 }
 
 bool JackClient::activate() {
-    jack_uuid_t uuid;
-    char *uuid_str = jack_get_uuid_for_client_name(client_, jack_get_client_name(client_));
-    jack_uuid_parse(uuid_str, &uuid);
-    jack_free(uuid_str);
-    jack_set_property(client_, uuid, "https://kx.studio/ns/carla/main-client-name", "Carla", "text/plain");
-
-
     if (jack_activate(client_) != 0) return false;
 
-    
     // Tenta conectar automaticamente nas saídas do sistema
     if (nOutputs_ > 0) {
         const char** physical_ports = jack_get_ports(client_, NULL, NULL, JackPortIsPhysical | JackPortIsInput);
