@@ -57,16 +57,16 @@ bool JackClient::open() {
 }
 
 bool JackClient::activate() {
-    if (jack_activate(client_) != 0) return false;
-
     jack_uuid_t uuid;
     char *uuid_str = jack_get_uuid_for_client_name(client_, jack_get_client_name(client_));
     jack_uuid_parse(uuid_str, &uuid);
     jack_free(uuid_str);
-
-    // Define o tipo como "instrument" para o Carla liberar o Piano Roll
     jack_set_property(client_, uuid, "http://jackaudio.org/metadata/type", "instrument", "text/plain");
 
+    
+    if (jack_activate(client_) != 0) return false;
+
+    
     // Tenta conectar automaticamente nas saídas do sistema
     if (nOutputs_ > 0) {
         const char** physical_ports = jack_get_ports(client_, NULL, NULL, JackPortIsPhysical | JackPortIsInput);
