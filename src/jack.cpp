@@ -4,6 +4,7 @@
 #include <iostream>
 #include <jack/types.h>
 #include <mutex>
+#include <sys/resource.h>
 
 JackClient::JackClient(const std::string& name)
     : nInputs_(0), nOutputs_(2), name_(name) {}
@@ -132,6 +133,8 @@ static std::once_flag cpu_pin_flag;
 int JackClient::process(jack_nframes_t nframes) {
     #ifdef ENABLE_CPU_ISOLATION
     std::call_once(cpu_pin_flag, []() {
+        std::cerr << "Pinning Audio thread " << pthread_self() << " to CPU 3\n";
+
         cpu_set_t cpuset;
         CPU_ZERO(&cpuset);
         CPU_SET(3, &cpuset);
@@ -141,7 +144,6 @@ int JackClient::process(jack_nframes_t nframes) {
         param.sched_priority = 70;
         pthread_setschedparam(pthread_self(), SCHED_FIFO, &param);
 
-        std::cerr << "Audio thread pinned to CPU 3\n";
     });
     #endif
     // 1. MIDI first
