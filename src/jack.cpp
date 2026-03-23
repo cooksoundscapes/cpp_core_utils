@@ -75,6 +75,23 @@ bool JackClient::activate() {
             jack_free(physical_ports);
         }
     }
+
+    #ifdef ENABLE_CPU_ISOLATION
+        // Depois de jack_activate()
+        pthread_t jack_thread = jack_client_thread_id(client_);
+
+        // Afixar na CPU 3
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(3, &cpuset);
+        pthread_setaffinity_np(jack_thread, sizeof(cpu_set_t), &cpuset);
+
+        // Prioridade RT (equivalente ao chrt -f 70)
+        struct sched_param param;
+        param.sched_priority = 70;
+        pthread_setschedparam(jack_thread, SCHED_FIFO, &param);
+    #endif
+
     return true;
 }
 
