@@ -3,7 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <jack/types.h>
-
+#include <mutex>
 
 JackClient::JackClient(const std::string& name)
     : nInputs_(0), nOutputs_(2), name_(name) {}
