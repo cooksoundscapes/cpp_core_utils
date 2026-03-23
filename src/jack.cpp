@@ -77,6 +77,7 @@ bool JackClient::activate() {
     }
 
     #ifdef ENABLE_CPU_ISOLATION
+        std::cerr << "Enabling CPU isolation for audio thread;\n";
         // Depois de jack_activate()
         pthread_t jack_thread = jack_client_thread_id(client_);
 
