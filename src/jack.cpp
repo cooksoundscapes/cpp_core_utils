@@ -4,6 +4,7 @@
 #include <iostream>
 #include <jack/types.h>
 
+
 JackClient::JackClient(const std::string& name)
     : nInputs_(0), nOutputs_(2), name_(name) {}
 
@@ -76,22 +77,22 @@ bool JackClient::activate() {
         }
     }
 
-    #ifdef ENABLE_CPU_ISOLATION
-        std::cerr << "Enabling CPU isolation for audio thread;\n";
-        // Depois de jack_activate()
-        pthread_t jack_thread = jack_client_thread_id(client_);
+    // #ifdef ENABLE_CPU_ISOLATION
+    //     std::cerr << "Enabling CPU isolation for audio thread;\n";
+    //     // Depois de jack_activate()
+    //     pthread_t jack_thread = jack_client_thread_id(client_);
 
-        // Afixar na CPU 3
-        cpu_set_t cpuset;
-        CPU_ZERO(&cpuset);
-        CPU_SET(3, &cpuset);
-        pthread_setaffinity_np(jack_thread, sizeof(cpu_set_t), &cpuset);
+    //     // Afixar na CPU 3
+    //     cpu_set_t cpuset;
+    //     CPU_ZERO(&cpuset);
+    //     CPU_SET(3, &cpuset);
+    //     pthread_setaffinity_np(jack_thread, sizeof(cpu_set_t), &cpuset);
 
-        // Prioridade RT (equivalente ao chrt -f 70)
-        struct sched_param param;
-        param.sched_priority = 70;
-        pthread_setschedparam(jack_thread, SCHED_FIFO, &param);
-    #endif
+    //     // Prioridade RT (equivalente ao chrt -f 70)
+    //     struct sched_param param;
+    //     param.sched_priority = 70;
+    //     pthread_setschedparam(jack_thread, SCHED_FIFO, &param);
+    // #endif
 
     return true;
 }
@@ -127,7 +128,21 @@ void JackClient::_shutdown(void* arg) {
 }
 
 int JackClient::process(jack_nframes_t nframes) {
-    // 1. MIDI primeiro (sempre)
+    #ifdef ENABLE_CPU_ISOLATION
+    std::call_once(cpu_pin_flag, []() {
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(3, &cpuset);
+        pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+
+        struct sched_param param;
+        param.sched_priority = 70;
+        pthread_setschedparam(pthread_self(), SCHED_FIFO, &param);
+
+        std::cerr << "Audio thread pinned to CPU 3\n";
+    });
+    #endif
+    // 1. MIDI first
     void* midiBuf = jack_port_get_buffer(midiIn_, nframes);
     const uint32_t evCount = jack_midi_get_event_count(midiBuf);
 
@@ -151,6 +166,7 @@ int JackClient::process(jack_nframes_t nframes) {
             midiExternalCallback(ev);
     }
 
+    // 2. Audio buffers
     for (size_t i = 0; i < nInputs_; ++i) {
         inputBuffers_[i] = static_cast<float*>(jack_port_get_buffer(audioIn_[i], nframes));
     }
