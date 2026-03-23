@@ -127,6 +127,8 @@ void JackClient::_shutdown(void* arg) {
     self->isConnected.store(false);
 }
 
+static std::once_flag cpu_pin_flag;
+
 int JackClient::process(jack_nframes_t nframes) {
     #ifdef ENABLE_CPU_ISOLATION
     std::call_once(cpu_pin_flag, []() {
