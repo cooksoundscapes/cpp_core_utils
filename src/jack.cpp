@@ -78,23 +78,6 @@ bool JackClient::activate() {
         }
     }
 
-    // #ifdef ENABLE_CPU_ISOLATION
-    //     std::cerr << "Enabling CPU isolation for audio thread;\n";
-    //     // Depois de jack_activate()
-    //     pthread_t jack_thread = jack_client_thread_id(client_);
-
-    //     // Afixar na CPU 3
-    //     cpu_set_t cpuset;
-    //     CPU_ZERO(&cpuset);
-    //     CPU_SET(3, &cpuset);
-    //     pthread_setaffinity_np(jack_thread, sizeof(cpu_set_t), &cpuset);
-
-    //     // Prioridade RT (equivalente ao chrt -f 70)
-    //     struct sched_param param;
-    //     param.sched_priority = 70;
-    //     pthread_setschedparam(jack_thread, SCHED_FIFO, &param);
-    // #endif
-
     return true;
 }
 
@@ -128,23 +111,24 @@ void JackClient::_shutdown(void* arg) {
     self->isConnected.store(false);
 }
 
-static std::once_flag cpu_pin_flag;
+[[maybe_unused]]static std::once_flag cpu_pin_flag;
 
 int JackClient::process(jack_nframes_t nframes) {
     #ifdef ENABLE_CPU_ISOLATION
-    std::call_once(cpu_pin_flag, []() {
-        std::cerr << "Pinning Audio thread " << pthread_self() << " to CPU 3\n";
+        #ifndef ISOLATED_AUDIO_CORE
+            #define ISOLATED_AUDIO_CORE 3
+        #endif
+        static_assert(std::is_integral<ENABLE_CPU_IS)
+        std::call_once(cpu_pin_flag, []() {
+            cpu_set_t cpuset;
+            CPU_ZERO(&cpuset);
+            CPU_SET(ISOLATED_AUDIO_CORE, &cpuset);
+            pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
 
-        cpu_set_t cpuset;
-        CPU_ZERO(&cpuset);
-        CPU_SET(3, &cpuset);
-        pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
-
-        struct sched_param param;
-        param.sched_priority = 70;
-        pthread_setschedparam(pthread_self(), SCHED_FIFO, &param);
-
-    });
+            struct sched_param param;
+            param.sched_priority = 70;
+            pthread_setschedparam(pthread_self(), SCHED_FIFO, &param);
+        });
     #endif
     // 1. MIDI first
     void* midiBuf = jack_port_get_buffer(midiIn_, nframes);

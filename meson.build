@@ -1,11 +1,9 @@
 project('audio-core', 'cpp',
   version : '0.1',
-  default_options : ['cpp_std=c++17'])
+  default_options : ['cpp_std=c++20'])
 
-# Dependência do JACK (o Meson busca via pkg-config automaticamente)
-jack_dep = dependency('jack')
+all_deps = [dependency('jack')]
 
-# Onde os headers estão
 core_inc = include_directories('include')
 
 # Arquivos fonte
@@ -14,7 +12,6 @@ core_sources = files(
   'src/logger.cpp'
 )
 
-# Criamos a biblioteca estática
 core_lib = static_library('audio-core',
   core_sources,
   include_directories : core_inc,
@@ -38,8 +35,11 @@ if not meson.is_subproject()
   test('logger', test_logger)
 endif
 
-# A parte mágica: O "declare_dependency" permite que o projeto principal
-# receba os fontes, os headers e o link para o JACK de uma vez só.
+if get_option('use_kfr')
+  subdir('meson')
+  deps += kfr_all_dep
+endif
+
 core_dep = declare_dependency(
   include_directories : core_inc,
   link_with : core_lib,

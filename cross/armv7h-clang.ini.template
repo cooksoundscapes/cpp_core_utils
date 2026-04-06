@@ -1,0 +1,43 @@
+[binaries]
+c = 'clang'
+cpp = 'clang++'
+ar = 'llvm-ar'
+strip = 'llvm-strip'
+pkg-config = 'pkg-config'
+
+[host_machine]
+system = 'linux'
+cpu_family = 'arm'
+cpu = 'armv7l'
+endian = 'little'
+
+[properties]
+sys_root = '${SYSROOT}'
+pkg_config_libdir = '${SYSROOT}/usr/lib/pkgconfig:${SYSROOT}/usr/share/pkgconfig'
+
+[built-in options]
+c_args = [
+  '--target=armv7l-unknown-linux-gnueabihf',
+  '--sysroot=${SYSROOT}',
+  '-mcpu=cortex-a53',
+  '-mfpu=neon-vfpv4',
+  '-mfloat-abi=hard']
+
+cpp_args = [
+  '--target=armv7l-unknown-linux-gnueabihf',
+  '--sysroot=${SYSROOT}',
+  '-mcpu=cortex-a53',
+  '-mfpu=neon-vfpv4',
+  '-mfloat-abi=hard']
+
+c_link_args = [
+  '--target=armv7l-unknown-linux-gnueabihf',
+  '--sysroot=${SYSROOT}',
+  '-fuse-ld=lld',
+  '-Wl,-dynamic-linker=/usr/lib/ld-linux-armhf.so.3']
+
+cpp_link_args = [
+  '--target=armv7l-unknown-linux-gnueabihf',
+  '--sysroot=${SYSROOT}',
+  '-fuse-ld=lld',
+  '-Wl,-dynamic-linker=/usr/lib/ld-linux-armhf.so.3']

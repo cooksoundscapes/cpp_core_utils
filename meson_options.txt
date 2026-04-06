@@ -1,0 +1,4 @@
+option('use_kfr', type: 'boolean', value: false, description: 'Enable KFR DSP library')
+option('kfr_dft',     type: 'boolean', value: false)
+option('kfr_dsp',     type: 'boolean', value: false)
+option('sysroot', type: 'string', value: '', description: 'Path to sysroot (default: $HOME/rpi-sysroot)')

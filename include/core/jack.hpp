@@ -9,8 +9,6 @@
 #include <functional>
 
 #include "midi_types.hpp"
-#define N_IN 1
-#define N_OUT 2
 
 class JackClient {
 public:

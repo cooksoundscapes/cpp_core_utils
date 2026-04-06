@@ -1,0 +1,80 @@
+cc = meson.get_compiler('cpp')
+if cc.get_id() != 'clang'
+    warning('KFR performs better with Clang. Use: CC=clang CXX=clang++ meson setup build')
+endif
+
+host_cpu_family = host_machine.cpu_family()
+is_arm = host_cpu_family == 'arm'
+
+arm_sysroot = join_paths(run_command('sh', '-c', 'echo $HOME', check: true).stdout().strip(), 'rpi-sysroot')
+
+kfr_opts = cmake.subproject_options()
+kfr_opts.add_cmake_defines({'KFR_ENABLE_CAPI_BUILD': false,})
+
+if is_arm
+    kfr_opts.add_cmake_defines({
+        'KFR_ARCH': 'neon',
+        'CMAKE_SYSTEM_NAME': 'Linux',
+        'CMAKE_SYSTEM_PROCESSOR': 'arm',
+        'CMAKE_C_COMPILER': 'clang',
+        'CMAKE_CXX_COMPILER': 'clang++',
+        'CMAKE_C_COMPILER_TARGET': 'armv7l-unknown-linux-gnueabihf',
+        'CMAKE_CXX_COMPILER_TARGET': 'armv7l-unknown-linux-gnueabihf',
+        'CMAKE_SYSROOT': arm_sysroot,
+        'CMAKE_C_FLAGS': '--target=armv7l-unknown-linux-gnueabihf -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard',
+        'CMAKE_CXX_FLAGS': '--target=armv7l-unknown-linux-gnueabihf -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard',
+        'CMAKE_EXE_LINKER_FLAGS': '-fuse-ld=lld',
+        'CMAKE_SHARED_LINKER_FLAGS': '-fuse-ld=lld',
+    })
+else
+    kfr_opts.add_cmake_defines({'KFR_ARCH': 'avx2'})
+endif
+
+use_dft = get_option('kfr_dft')
+use_dsp = get_option('kfr_dsp')
+
+if use_dft
+    kfr_opts.add_cmake_defines({'KFR_ENABLE_DFT': true})
+endif
+
+if use_dsp
+    kfr_opts.add_cmake_defines({'KFR_ENABLE_DSP': true})
+endif
+
+kfr_proj = cmake.subproject('kfr', options: kfr_opts)
+kfr_dep = kfr_proj.dependency('kfr')
+
+# Get DFT and DSP libraries based on architecture
+kfr_link_targets = []
+if use_dft
+    if is_arm
+        kfr_link_targets += [kfr_proj.get_variable('kfr_dft')]
+    else
+        kfr_link_targets += [
+            kfr_proj.get_variable('kfr_dft_sse2'),
+            kfr_proj.get_variable('kfr_dft_sse41'),
+            kfr_proj.get_variable('kfr_dft_avx'),
+            kfr_proj.get_variable('kfr_dft_avx2'),
+            kfr_proj.get_variable('kfr_dft_avx512'),
+        ]
+    endif
+endif
+
+if use_dsp
+    if is_arm
+        kfr_link_targets += [kfr_proj.get_variable('kfr_dsp')]
+    else
+        kfr_link_targets += [
+            kfr_proj.get_variable('kfr_dsp_sse2'),
+            kfr_proj.get_variable('kfr_dsp_sse41'),
+            kfr_proj.get_variable('kfr_dsp_avx'),
+            kfr_proj.get_variable('kfr_dsp_avx2'),
+            kfr_proj.get_variable('kfr_dsp_avx512'),
+        ]
+    endif
+endif
+
+kfr_all_dep = declare_dependency(
+  dependencies: [kfr_dep],
+  link_with: kfr_link_targets,
+)
