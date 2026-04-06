@@ -17,11 +17,11 @@ JackClient::~JackClient() {
 }
 
 bool JackClient::open() {
+    isConnected = false;
+
     client_ = jack_client_open(name_.c_str(), JackNullOption, nullptr);
     if (!client_)
         return false;
-    
-    isConnected.store(true);
 
     jack_set_process_callback(client_, &_process, this);
     jack_on_shutdown(client_, &_shutdown, this);
@@ -57,7 +57,11 @@ bool JackClient::open() {
 }
 
 bool JackClient::activate() {
-    if (jack_activate(client_) != 0) return false;
+    if (jack_activate(client_) != 0) {
+        isConnected = false;
+        return false;
+    }
+    isConnected = true;
 
     const char** physical_ports = jack_get_ports(
         client_,
@@ -67,13 +71,13 @@ bool JackClient::activate() {
     );
     
     if (physical_ports != nullptr) {
-        int phys_in_count = 0, phys_out_count = 0;
+        size_t phys_in_count = 0, phys_out_count = 0;
         for (int i = 0; physical_ports[i] != nullptr; i++) {
             jack_port_t* port = jack_port_by_name(client_, physical_ports[i]);
             int flags = jack_port_flags(port);
 
             //connect available inputs to app
-            if (flags & JackPortIsInput) {
+            if (flags & JackPortIsOutput) {
                 if (phys_in_count < nInputs_) {
                     jack_connect(
                         client_,
@@ -84,7 +88,7 @@ bool JackClient::activate() {
                 phys_in_count++;
                 continue;
             }
-            if (flags & JackPortIsOutput) {
+            if (flags & JackPortIsInput) {
                 if (phys_out_count < nOutputs_) {
                     jack_connect(
                         client_,
