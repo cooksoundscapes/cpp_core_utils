@@ -9,8 +9,6 @@
 #include <functional>
 
 #include "midi_types.hpp"
-#define N_IN 1
-#define N_OUT 2
 
 class JackClient {
 public:
@@ -18,36 +16,32 @@ public:
     JackClient(const std::string& name, size_t inputs, size_t outputs);
     virtual ~JackClient();
 
+    // main ops
     bool open();
     bool activate();
     void close();
+    int connectMidiPorts(std::string&, std::string&);
 
+    // public getters & setters
     bool getJackStatus() { return isConnected.load(); }
     std::vector<std::string> getAvailableMidiSources();
     const std::string& getLastConnectedDevice() { return lastConnectedDevice_; }
     void setLastConnectedDevice(std::string dev);
-
     uint32_t sampleRate() const;
     uint32_t bufferSize() const;
+    size_t blockSize() { return static_cast<size_t>(jack_get_buffer_size(client_)); }
+    std::vector<std::string> getMidiOutPorts();
 
+    // ToDo: unguarded call at RT thread - API must warn about usage
     std::function<void(MidiEvent)> midiExternalCallback;
 
-    size_t blockSize() { return static_cast<size_t>(jack_get_buffer_size(client_)); }
-
-    std::vector<std::string> getMidiOutPorts();
-    int connectMidiPorts(std::string&, std::string&);
-
 protected:
-    // ===== hooks que você implementa =====
+    // implemented by child class
     virtual void processAudio(float**, uint32_t) {}
     virtual void processAudio([[maybe_unused]]float** inputs, float** outputs, uint32_t nframes) {
         processAudio(outputs, nframes);
     }
     virtual void processMidi(MidiEvent) {}
-
-    // ===== helpers =====
-    float* outBuffer(size_t channel, uint32_t nframes);
-    void*  midiBuffer(uint32_t nframes);
 
 private:
     static int  _process(jack_nframes_t nframes, void* arg);

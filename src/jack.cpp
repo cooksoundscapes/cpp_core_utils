@@ -59,41 +59,45 @@ bool JackClient::open() {
 bool JackClient::activate() {
     if (jack_activate(client_) != 0) return false;
 
-    // Tenta conectar automaticamente nas saídas do sistema
-    if (nOutputs_ > 0) {
-        const char** physical_ports = jack_get_ports(client_, NULL, NULL, JackPortIsPhysical | JackPortIsInput);
-        
-        if (physical_ports != nullptr) {
-            // Conectamos o que for possível, respeitando o limite do hardware e do nosso app
-            for (size_t i = 0; i < nOutputs_; ++i) {
-                // Se a porta física 'i' não existir (ex: hardware mono), paramos
-                if (!physical_ports[i]) break; 
+    const char** physical_ports = jack_get_ports(
+        client_,
+        NULL,
+        NULL,
+        JackPortIsPhysical
+    );
+    
+    if (physical_ports != nullptr) {
+        int phys_in_count = 0, phys_out_count = 0;
+        for (int i = 0; physical_ports[i] != nullptr; i++) {
+            jack_port_t* port = jack_port_by_name(client_, physical_ports[i]);
+            int flags = jack_port_flags(port);
 
-                // Segurança extra: verifica se a nossa porta audioOut_[i] é válida
-                if (audioOut_[i]) {
-                    jack_connect(client_, jack_port_name(audioOut_[i]), physical_ports[i]);
+            //connect available inputs to app
+            if (flags & JackPortIsInput) {
+                if (phys_in_count < nInputs_) {
+                    jack_connect(
+                        client_,
+                        physical_ports[i],
+                        jack_port_name(audioIn_[phys_in_count])
+                    );
                 }
+                phys_in_count++;
+                continue;
             }
-            jack_free(physical_ports);
+            if (flags & JackPortIsOutput) {
+                if (phys_out_count < nOutputs_) {
+                    jack_connect(
+                        client_,
+                        jack_port_name(audioOut_[phys_out_count]),
+                        physical_ports[i]
+                        
+                    );
+                }
+                phys_out_count++;
+            }
         }
+        jack_free(physical_ports);
     }
-
-    // #ifdef ENABLE_CPU_ISOLATION
-    //     std::cerr << "Enabling CPU isolation for audio thread;\n";
-    //     // Depois de jack_activate()
-    //     pthread_t jack_thread = jack_client_thread_id(client_);
-
-    //     // Afixar na CPU 3
-    //     cpu_set_t cpuset;
-    //     CPU_ZERO(&cpuset);
-    //     CPU_SET(3, &cpuset);
-    //     pthread_setaffinity_np(jack_thread, sizeof(cpu_set_t), &cpuset);
-
-    //     // Prioridade RT (equivalente ao chrt -f 70)
-    //     struct sched_param param;
-    //     param.sched_priority = 70;
-    //     pthread_setschedparam(jack_thread, SCHED_FIFO, &param);
-    // #endif
 
     return true;
 }
@@ -128,7 +132,7 @@ void JackClient::_shutdown(void* arg) {
     self->isConnected.store(false);
 }
 
-static std::once_flag cpu_pin_flag;
+[[maybe_unused]]static std::once_flag cpu_pin_flag;
 
 int JackClient::process(jack_nframes_t nframes) {
     #ifdef ENABLE_CPU_ISOLATION
@@ -186,17 +190,14 @@ int JackClient::process(jack_nframes_t nframes) {
     return 0;
 }
 
-float* JackClient::outBuffer(size_t channel, uint32_t nframes) {
-    return (float*) jack_port_get_buffer(audioOut_[channel], nframes);
-}
-
-void* JackClient::midiBuffer(uint32_t nframes) {
-    return jack_port_get_buffer(midiIn_, nframes);
-}
-
 std::vector<std::string> JackClient::getAvailableMidiSources() {
     std::vector<std::string> sources;
-    const char** ports = jack_get_ports(client_, NULL, JACK_DEFAULT_MIDI_TYPE, JackPortIsOutput);
+    const char** ports = jack_get_ports(
+        client_,
+        NULL,
+        JACK_DEFAULT_MIDI_TYPE,
+        JackPortIsOutput
+    );
     
     if (ports) {
         for (int i = 0; ports[i]; ++i) {
@@ -209,26 +210,22 @@ std::vector<std::string> JackClient::getAvailableMidiSources() {
 }
 
 void JackClient::setLastConnectedDevice(std::string newPortName) {
-    // 1. Desconecta o cabo antigo se ele existir
     if (!lastConnectedDevice_.empty()) {
-        // jack_disconnect(cliente, porta_origem, porta_destino)
-        jack_disconnect(client_, 
-                        lastConnectedDevice_.c_str(), 
-                        jack_port_name(midiIn_));
+        jack_disconnect(
+            client_,
+            lastConnectedDevice_.c_str(), 
+            jack_port_name(midiIn_)
+        );
     }
-
-    // 2. Atualiza para o novo nome da porta
     lastConnectedDevice_ = newPortName;
 
-    // 3. Conecta o novo cabo virtual
     if (!lastConnectedDevice_.empty()) {
-        // Tenta conectar. O JACK retorna 0 se der certo.
-        int res = jack_connect(client_, 
-                               lastConnectedDevice_.c_str(), 
-                               jack_port_name(midiIn_));
-                               
+        int res = jack_connect(
+            client_, 
+            lastConnectedDevice_.c_str(), 
+            jack_port_name(midiIn_)
+        );
         if (res != 0 && res != EEXIST) {
-            // Se falhou (porta sumiu?), limpamos o estado
             lastConnectedDevice_ = "";
         }
     }
