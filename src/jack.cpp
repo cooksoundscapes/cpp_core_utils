@@ -41,7 +41,7 @@ bool JackClient::open() {
 
     for (size_t i{0}; i < nInputs_; i++) {
         std::string portName = resolvePortName("in_", i, nInputs_);
-        audioIn_[0] = jack_port_register(
+        audioIn_[i] = jack_port_register(
         client_, portName.c_str(),
         JACK_DEFAULT_AUDIO_TYPE,
         JackPortIsInput, 0);

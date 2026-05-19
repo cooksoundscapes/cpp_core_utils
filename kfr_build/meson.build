@@ -4,12 +4,15 @@ if cc.get_id() != 'clang'
 endif
 
 host_cpu_family = host_machine.cpu_family()
-is_arm = host_cpu_family == 'arm'
+is_arm = host_cpu_family in ['arm', 'aarch64']
 
-arm_sysroot = join_paths(run_command('sh', '-c', 'echo $HOME', check: true).stdout().strip(), 'rpi-sysroot')
+sysroot_opt = get_option('sysroot')
+arm_sysroot = sysroot_opt != '' ? sysroot_opt : join_paths(run_command('sh', '-c', 'echo $HOME', check: true).stdout().strip(), 'rpi-sysroot')
+
+cmake = import('cmake')
 
 kfr_opts = cmake.subproject_options()
-kfr_opts.add_cmake_defines({'KFR_ENABLE_CAPI_BUILD': false,})
+kfr_opts.add_cmake_defines({'KFR_ENABLE_CAPI_BUILD': 'OFF',})
 
 if is_arm
     kfr_opts.add_cmake_defines({

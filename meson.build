@@ -2,7 +2,7 @@ project('audio-core', 'cpp',
   version : '0.1',
   default_options : ['cpp_std=c++20'])
 
-all_deps = [dependency('jack')]
+deps = [dependency('jack')]
 
 core_inc = include_directories('include')
 
@@ -15,7 +15,7 @@ core_sources = files(
 core_lib = static_library('audio-core',
   core_sources,
   include_directories : core_inc,
-  dependencies : jack_dep,
+  dependencies : deps,
   install : true
 )
 
@@ -36,12 +36,12 @@ if not meson.is_subproject()
 endif
 
 if get_option('use_kfr')
-  subdir('meson')
+  subdir('kfr_build')
   deps += kfr_all_dep
 endif
 
 core_dep = declare_dependency(
   include_directories : core_inc,
   link_with : core_lib,
-  dependencies : jack_dep
+  dependencies : deps
 )
